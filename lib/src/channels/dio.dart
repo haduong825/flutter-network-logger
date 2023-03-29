@@ -7,8 +7,17 @@ class DioNetworkLogger extends dio.Interceptor {
   final NetworkEventList eventList;
   final _requests = <dio.RequestOptions, NetworkEvent>{};
 
-  DioNetworkLogger({NetworkEventList? eventList})
-      : this.eventList = eventList ?? NetworkLogger.instance;
+  static final DioNetworkLogger _singleton =
+      DioNetworkLogger._internal(NetworkLogger.instance);
+
+  factory DioNetworkLogger() {
+    return _singleton;
+  }
+
+  DioNetworkLogger._internal(this.eventList);
+
+  // DioNetworkLogger({NetworkEventList? eventList})
+  //     : this.eventList = eventList ?? NetworkLogger.instance;
 
   @override
   Future<void> onRequest(

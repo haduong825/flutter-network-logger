@@ -4,10 +4,24 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shake/shake.dart';
 
 import 'enumerate_items.dart';
 import 'network_event.dart';
 import 'network_logger.dart';
+
+class NetworkLoggerShake {
+  static attachTo(BuildContext context,
+      {List<String> baseUrls = const [], bool isHiddenBaseUrl = false}) {
+    ShakeDetector detector = ShakeDetector.waitForStart(
+        // shakeThresholdGravity: 0.1,
+        onPhoneShake: () {
+      NetworkLoggerScreen.open(context,
+          baseUrls: baseUrls, isHiddenBaseUrl: isHiddenBaseUrl);
+    });
+    detector.startListening();
+  }
+}
 
 /// Overlay for [NetworkLoggerButton].
 class NetworkLoggerOverlay extends StatefulWidget {
@@ -248,22 +262,36 @@ class _NetworkLoggerButtonState extends State<NetworkLoggerButton> {
 
 /// Screen that displays log entries list.
 class NetworkLoggerScreen extends StatelessWidget {
-  NetworkLoggerScreen({Key? key, NetworkEventList? eventList})
+  NetworkLoggerScreen(
+      {Key? key,
+      NetworkEventList? eventList,
+      List<String> baseUrls = const [],
+      bool isHiddenBaseUrl = false})
       : this.eventList = eventList ?? NetworkLogger.instance,
+        this.baseUrls = baseUrls,
+        this.isHiddenBaseUrl = isHiddenBaseUrl,
         super(key: key);
 
   /// Event list to listen for event changes.
   final NetworkEventList eventList;
 
+  //Specific base url to hide it
+  final List<String> baseUrls;
+  final bool isHiddenBaseUrl;
+
   /// Opens screen.
-  static Future<void> open(
-    BuildContext context, {
-    NetworkEventList? eventList,
-  }) {
+  static Future<void> open(BuildContext context,
+      {NetworkEventList? eventList,
+      List<String> baseUrls = const [],
+      bool isHiddenBaseUrl = false}) {
     return Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => NetworkLoggerScreen(eventList: eventList),
+        builder: (context) => NetworkLoggerScreen(
+          eventList: eventList,
+          baseUrls: baseUrls ?? [],
+          isHiddenBaseUrl: isHiddenBaseUrl,
+        ),
       ),
     );
   }
@@ -326,41 +354,60 @@ class NetworkLoggerScreen extends StatelessWidget {
                   itemCount: events.length,
                   itemBuilder: enumerateItems<NetworkEvent>(
                     events,
-                    (context, item) => ListTile(
-                      key: ValueKey(item.request),
-                      title: Text(
-                        item.request!.method,
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Text(
-                        item.request!.uri.toString(),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      leading: Icon(
-                        item.error == null
-                            ? (item.response == null
-                                ? Icons.hourglass_empty
-                                : Icons.done)
-                            : Icons.error,
-                      ),
-                      trailing: _AutoUpdate(
-                        duration: Duration(seconds: 1),
-                        builder: (context) =>
-                            Text(_timeDifference(item.timestamp!)),
-                      ),
-                      onTap: () => NetworkLoggerEventScreen.open(
-                        context,
-                        item,
-                        eventList,
-                      ),
-                    ),
+                    (context, item) => buildItem(context, item),
                   ),
                 ),
               )
             ],
           );
         },
+      ),
+    );
+  }
+
+  buildItem(BuildContext context, NetworkEvent item) {
+    var urlText = item.request!.uri;
+
+    if (isHiddenBaseUrl) {
+      baseUrls.forEach((element) {
+        if (urlText.contains(element)) {
+          urlText = urlText.replaceAll(element, "/");
+        }
+      });
+    }
+
+    return ListTile(
+      key: ValueKey(item.request),
+      tileColor: item.error == null
+          ? (item.response == null ? Colors.amber : Colors.green)
+          : Colors.red,
+      title: Text(
+        item.request!.method,
+        style: TextStyle(fontWeight: FontWeight.bold),
+      ),
+      subtitle: Text(
+        urlText,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      // leading: Icon(
+      //   item.error == null
+      //       ? (item.response == null ? Icons.hourglass_empty : Icons.done)
+      //       : Icons.error,
+      // ),
+      leading: Text(
+        (item.response?.statusCode).toString(),
+        textAlign: TextAlign.center,
+        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+      ),
+      trailing: _AutoUpdate(
+        duration: Duration(seconds: 1),
+        builder: (context) => Text(_timeDifference(item.timestamp!)),
+      ),
+      onTap: () => NetworkLoggerEventScreen.open(
+        context,
+        item,
+        eventList,
       ),
     );
   }
