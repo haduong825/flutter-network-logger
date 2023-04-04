@@ -23,14 +23,36 @@ var dio = Dio();
 dio.interceptors.add(DioNetworkLogger());
 ```
 
-### 3. Attach network logger overlay button to UI.
+### 3. Add list base url if you want to hide it (only work on physical device).
 
-The easiest way to access Network Logger UI is using `NetworkLoggerOverlay` which will display floating action button over all screens. You can also implement custom scenarios to open UI with different actions.
+```dart
+@override
+void initState() {
+  final urls = ["https:...","http:..."];
+  NetworkLoggerShake.attachTo(context,
+    baseUrls: urls, 
+    isHiddenBaseUrl: true);
+  super.initState();
+}
+```
+
+### 4. Attach network logger overlay button to UI.
+
+The easiest way to access Network Logger UI is using `NetworkLoggerOverlay` (for simulator) which will display floating action button over all screens and `NetworkLoggerShake` (for real device) which you can shake to show net logger. You can also implement custom scenarios to open UI with different actions.
 
 ```dart
 @override
 void initState() {
   NetworkLoggerOverlay.attachTo(context);
+  super.initState();
+}
+```
+
+```dart
+@override
+void initState() {
+  NetworkLoggerShake.attachTo(context,
+          baseUrls: urls, isHiddenBaseUrl: true);
   super.initState();
 }
 ```

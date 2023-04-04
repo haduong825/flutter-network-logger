@@ -289,7 +289,7 @@ class NetworkLoggerScreen extends StatelessWidget {
       MaterialPageRoute(
         builder: (context) => NetworkLoggerScreen(
           eventList: eventList,
-          baseUrls: baseUrls ?? [],
+          baseUrls: baseUrls,
           isHiddenBaseUrl: isHiddenBaseUrl,
         ),
       ),
@@ -595,7 +595,7 @@ class NetworkLoggerEventScreen extends StatelessWidget {
             children: <Widget>[
               Text(
                 event.response!.statusCode.toString(),
-                style: Theme.of(context).textTheme.bodyText1,
+                style: Theme.of(context).textTheme.bodyLarge,
               ),
               SizedBox(width: 15),
               Expanded(child: Text(event.response!.statusMessage)),
